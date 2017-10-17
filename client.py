@@ -1,21 +1,19 @@
 import xmlrpclib
 import socket
 import threading
-import thread
 
-# TODO: pedir para o usuario digitar a porta
-HOST = "localhost"
-PORT = 1234
 
 class ServerThread(threading.Thread):
-	def __init__(self):
+	def __init__(self, host, port):
 		threading.Thread.__init__(self)
+		self.host = host
+		self.port = port
 		self.conn = None
 		self.addr = None
 
 	def run(self):
 		s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-		s.bind((HOST, PORT))
+		s.bind((self.host, self.port))
 		s.listen(1)
 		
 		self.conn, self.addr = s.accept()
@@ -35,7 +33,7 @@ class ClientThread(threading.Thread):
 
 	def run(self):
 		while True:
-			msg = raw_input()
+			msg = raw_input("=>")
 			if msg == 'quit':
 				self.sock.send("quit")
 				print "bye"
@@ -49,14 +47,31 @@ class ClientThread(threading.Thread):
 def main():
 	proxy = xmlrpclib.ServerProxy("http://localhost:8000/")
 
-	proxy.register("joao", "127.0.0.1", 1234)
-	u = proxy.list_users()
+	username = raw_input("username: ")
+	ip = raw_input("ip: ")
+	port = int(raw_input("port: "))
 
-	st = ServerThread()
+	st = ServerThread(ip, port)
 	st.start()
 
-	ct = ClientThread(HOST, PORT)
-	ct.start()
+	proxy.register(username, ip, port)
+
+	while True:
+		msg = raw_input()
+
+		if msg == 'list':
+			user_list = proxy.list_users()
+			print "Available users:"
+			for u in user_list:
+				print u
+		else:
+			action, person = msg.split(" ", 1)
+			user_list = proxy.list_users()
+			if action == 'talk':
+				for u in user_list:
+					if person == u['username']:
+						ct = ClientThread(u['ip'], int(u['port']))
+						ct.start()
 
 
 if __name__ == "__main__":
