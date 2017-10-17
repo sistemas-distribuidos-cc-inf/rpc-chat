@@ -25,7 +25,7 @@ def register(username, ip, port):
 	else:
 		return True
 
-def list_user(username = ""):
+def list_users(username = ""):
 	if username != "":
 		for u in userlist:
 			if u['username'] == username:
@@ -41,7 +41,7 @@ def main():
 	print "Listening on port " + str(PORT) +"..." 
 
 	server.register_function(register)
-	server.register_function(list_user)
+	server.register_function(list_users)
 
 	server.serve_forever()
 
