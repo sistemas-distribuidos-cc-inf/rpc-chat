@@ -45,7 +45,7 @@ class ClientThread(threading.Thread):
 
 
 def main():
-	proxy = xmlrpclib.ServerProxy("http://localhost:8000/")
+	client = xmlrpclib.ServerProxy("http://localhost:8000/")
 
 	username = raw_input("username: ")
 	ip = raw_input("ip: ")
@@ -54,19 +54,19 @@ def main():
 	st = ServerThread(ip, port)
 	st.start()
 
-	proxy.register(username, ip, port)
+	client.register(username, ip, port)
 
 	while True:
 		msg = raw_input()
 
 		if msg == 'list':
-			user_list = proxy.list_users()
+			user_list = client.list()
 			print "Available users:"
 			for u in user_list:
 				print u
 		else:
 			action, person = msg.split(" ", 1)
-			user_list = proxy.list_users()
+			user_list = client.list_users()
 			if action == 'talk':
 				for u in user_list:
 					if person == u['username']:
