@@ -1,77 +1,54 @@
 import xmlrpclib
 import socket
-import threading
+from threading import Thread
 
-
-class ServerThread(threading.Thread):
-  def __init__(self, host, port):
-    threading.Thread.__init__(self)
-    self.host = host
-    self.port = port
-    self.conn = None
-    self.addr = None
-
-  def run(self):
-    s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    s.bind((self.host, self.port))
-    s.listen(1)
-    
-    self.conn, self.addr = s.accept()
-    while True:
-      msg = self.conn.recv(1024)
-      if msg == "quit":
-        break
+def serverThread(username, ip, port):
+  udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+  orig = (ip, port)
+  udp.bind(orig)
+  while True:
+      msg, cliente = udp.recvfrom(1024)
       print msg
-    self.conn.close()
-
-
-class ClientThread(threading.Thread):
-  def __init__(self, host, port):
-    threading.Thread.__init__(self)
-    self.sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    self.sock.connect((host, port))
-
-  def run(self):
-    while True:
-      msg = raw_input("=>")
-      if msg == 'quit':
-        self.sock.send("quit")
-        print "bye"
-        break
-      else:
-        self.sock.sendall(msg)
-
-    self.sock.close()
-
+  udp.close()
 
 def main():
-  proxy = xmlrpclib.ServerProxy("http://localhost:8000/")
+  client = xmlrpclib.ServerProxy("http://localhost:8000/")
 
   username = raw_input("username: ")
   ip = raw_input("ip: ")
   port = int(raw_input("port: "))
 
-  st = ServerThread(ip, port)
-  st.start()
+  client.register(username, ip, port)
 
-  proxy.register(username, ip, port)
+  ts = Thread(target=serverThread, args=(username, ip, port,))
+  ts.start()
 
   while True:
-    msg = raw_input()
+    print "Type an action ('list' or 'talk'): "
+    action = raw_input()
 
-    if msg == 'list':
-      user_list = proxy.list()
+    if action == 'list':
+      user_list = client.list()
       print "Available users:"
       for u in user_list:
         print u
+
+    elif action == 'talk':
+      print "Type username you want to talk to: "
+      person = raw_input()
+      user_list = client.list()
+      for u in user_list:
+        if person == u['username']:
+          udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+          dest = (u['ip'], u['port'])
+          print "Type your message: "
+          msg = raw_input()
+          msg = username + ": " + msg
+          udp.sendto (msg, dest)
+          udp.close()
     else:
-      action, person = msg.split(" ", 1)
-      user_list = proxy.list()
-      if action == 'talk':
-        for u in user_list:
-          if person == u['username']:
-            ct = ClientThread(u['ip'], int(u['port']))
-            ct.start()
+      print "Invalid action\nAvailable actions: "
+      client.system.listMethods()
 
 
 if __name__ == "__main__":
