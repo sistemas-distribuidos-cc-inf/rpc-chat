@@ -60,13 +60,13 @@ def main():
     msg = raw_input()
 
     if msg == 'list':
-      user_list = proxy.list_users()
+      user_list = proxy.list()
       print "Available users:"
       for u in user_list:
         print u
     else:
       action, person = msg.split(" ", 1)
-      user_list = proxy.list_users()
+      user_list = proxy.list()
       if action == 'talk':
         for u in user_list:
           if person == u['username']:
